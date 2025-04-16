@@ -20,6 +20,10 @@ jobs:
         with:
           dotnet-version: '9'
 
+      # --- Go to project directory
+      - name: Go to project directory
+        run: cd src/Fusil-website
+
       # --- Install node and pnpm
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -31,10 +35,6 @@ jobs:
         with:
           node-version: 20
           cache: 'pnpm'
-
-      # --- Go to project directory
-      - name: Go to project directory
-        run: cd src/Fusil-website
 
       # --- Install packages
       - name: Install nodejs dependencies
