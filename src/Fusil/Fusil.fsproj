@@ -5,8 +5,12 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsAotCompatible>true</IsAotCompatible>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PublishTrimmed>true</PublishTrimmed>
+  </PropertyGroup>
+
+  <!-- Package properties -->
+  <PropertyGroup>
     <PackageId>Fusil</PackageId>
-    <Version>1.0.3</Version>
     <Authors>Gaël Bouquain</Authors>
     <PackageTags>Fuzzy;String;Matching;Comparison;fable-all</PackageTags>
     <PackageProjectUrl>https://github.com/carne8/Fusil</PackageProjectUrl>
@@ -15,7 +19,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="OptionCE.fs" />
     <Compile Include="CharClass.fs" />
     <Compile Include="Array2D.fs" />
     <Compile Include="Library.fs" />
@@ -26,6 +29,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="FsToolkit.ErrorHandling" Version="5.0.0-beta011" />
   </ItemGroup>
 
 </Project>

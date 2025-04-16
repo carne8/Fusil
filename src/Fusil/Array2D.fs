@@ -1,7 +1,6 @@
 module internal Shared.Array2D
 
-// Custom implementation of Array2D for better performances than default one
-// and for Fable compatibility
+// Custom implementation of Array2D for Fable compatibility
 type Array2D<'T>(arr: 'T array, height, width) =
     member _.Width = width
     member _.Height = height
@@ -13,8 +12,11 @@ type Array2D<'T>(arr: 'T array, height, width) =
         and set(i, j) v = this.Set i j v
 
 module Array2D =
+    let inline zeroCreate height width =
+        Array2D(Array.zeroCreate<'T> (width * height), height, width)
+
     let inline create height width defaultValue =
-        let arr2d = Array2D(Array.zeroCreate<'T> (width * height), height, width)
+        let arr2d = zeroCreate height width
         for i = 0 to height - 1 do
             for j = 0 to width - 1 do
                 arr2d[i, j] <- defaultValue
@@ -22,7 +24,7 @@ module Array2D =
         arr2d
 
     let inline init height width init =
-        let arr2d = Array2D(Array.zeroCreate<'T> (width * height), height, width)
+        let arr2d = zeroCreate height width
         for i = 0 to height - 1 do
             for j = 0 to width - 1 do
                 arr2d[i, j] <- init i j

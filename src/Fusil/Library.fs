@@ -4,6 +4,7 @@
 // https://github.com/junegunn/fzf/blob/master/src/algo/algo.go
 
 open System
+open FsToolkit.ErrorHandling
 open Shared.CharClass
 open Shared.Array2D
 
@@ -89,10 +90,12 @@ type ScoreMatrixPoint =
       Gap: int
       Consecutive: int }
 
+    #if FABLE_COMPILER
     static member Default =
         { Score = 0
           Gap = 0
           Consecutive = 0 }
+    #endif
 
 let fuzzyMatch (query: string) (candidate: string) =
     option {
@@ -131,15 +134,21 @@ let fuzzyMatch (query: string) (candidate: string) =
         if queryCharIdx <> m then do! None
 
         // Phase 2: Create the scores matrix
-        let scoreMatrix = Array2D.create (m + 1) (n + 1) ScoreMatrixPoint.Default
+        let scoreMatrix = Array2D.zeroCreate (m + 1) (n + 1)
+        let inline getMatrixPoint i j =
+            #if !FABLE_COMPILER
+            scoreMatrix[i, j]
+            #else
+            scoreMatrix[i, j] |> unbox |> Option.defaultValue ScoreMatrixPoint.Default
+            #endif
 
         let mutable bestScore = 0
         let mutable bestPos = 0, 0
 
         for i = 1 to m do
             for j = firstCharOccurence[i-1] + 1 to n do // Prevent useless computing
-                let diag = scoreMatrix[i-1, j-1]
-                let left = scoreMatrix[i, j-1]
+                let diag = getMatrixPoint (i-1) (j-1)
+                let left = getMatrixPoint i (j-1)
 
                 let mutable consecutive = 0
 
@@ -213,13 +222,12 @@ let fuzzyMatch (query: string) (candidate: string) =
         // Phase 3: Backtrack
         let mutable i = fst bestPos
         let mutable j = snd bestPos
-        let point () = scoreMatrix[i, j]
         let mutable matchingCharacter = Array.zeroCreate<bool> n
 
         while i > 0 do
-            let diag = scoreMatrix[i-1, j-1]
-            let left = scoreMatrix[i, j-1]
-            let s = point().Score
+            let diag = getMatrixPoint (i-1) (j-1)
+            let left = getMatrixPoint i (j-1)
+            let s = getMatrixPoint i j |> _.Score
 
             if s > left.Score && s > diag.Score then
                 matchingCharacter[j-1] <- true
