@@ -6,7 +6,7 @@ html {
   background-color: #ebc497;
 }
 
-#sutil-app {
+body {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -51,7 +51,7 @@ input {
     "opsz" 40;
 }
 
-.results {
+#results {
   display: flex;
   flex-direction: column;
 
@@ -68,7 +68,7 @@ input {
     "opsz" 30;
 }
 
-.results strong {
+#results strong {
   font-variation-settings:
     "wght" 800,
     "wdth" 60,
@@ -84,7 +84,7 @@ input {
     font-size: 30px;
   }
 
-  .results {
+  #results {
     font-size: 25px;
   }
 }
@@ -97,7 +97,7 @@ input {
     font-size: 25px;
   }
 
-  .results {
+  #results {
     font-size: 25px;
   }
 }
@@ -110,7 +110,7 @@ input {
     font-size: 20px;
   }
 
-  .results {
+  #results {
     font-size: 20px;
   }
 }

@@ -4,7 +4,6 @@
 // https://github.com/junegunn/fzf/blob/master/src/algo/algo.go
 
 open System
-open FsToolkit.ErrorHandling
 open Shared.CharClass
 open Shared.Array2D
 
@@ -84,155 +83,162 @@ module private Bonus = // Copied from fzf code
             (int CharClass.CharNumber + 1)
             (fun i j -> bonusFor (enum<CharClass> i) (enum<CharClass> j))
 
+#if !FABLE_COMPILER // Use POJOs for Fable
 [<Struct>]
 type ScoreMatrixPoint =
     { Score: int
       Gap: int
       Consecutive: int }
-
-    #if FABLE_COMPILER
-    static member Default =
-        { Score = 0
-          Gap = 0
-          Consecutive = 0 }
-    #endif
+#endif
 
 let fuzzyMatch (query: string) (candidate: string) =
-    option {
-        let queryLower = query.ToLowerInvariant()
-        let candidateLower = candidate.ToLowerInvariant()
+    let queryLower = query.ToLowerInvariant()
+    let candidateLower = candidate.ToLowerInvariant()
 
-        /// Query length
-        let m = query.Length
-        /// Candidate length
-        let n = candidate.Length
-        if m > n then do! None
+    /// Query length
+    let m = query.Length
+    /// Candidate length
+    let n = candidate.Length
+    if m > n then
+        None
+    else
 
-        // Phase 1: Assign bonus to each character of the candidate
-        // and check if all query characters exist in the candidate
-        // Also find the first appearence index of each query character in the candidate
-        let bonuses = Array.zeroCreate n
-        let firstCharOccurence = Array.zeroCreate m
+    // Phase 1: Assign bonus to each character of the candidate
+    // and check if all query characters exist in the candidate
+    // Also find the first appearence index of each query character in the candidate
+    let bonuses = Array.zeroCreate n
+    let firstCharOccurence = Array.zeroCreate m
 
-        let mutable prevCharClass = int CharClass.initialCharClass
-        let mutable queryCharIdx = 0
-        for i = 0 to n - 1 do
-            let charClass = candidate[i] |> CharClass.ofChar |> int
-            bonuses[i] <- Bonus.matrix[prevCharClass, charClass]
+    let mutable prevCharClass = int CharClass.initialCharClass
+    let mutable queryCharIdx = 0
+    for i = 0 to n - 1 do
+        let charClass = candidate[i] |> CharClass.ofChar |> int
+        bonuses[i] <- Bonus.matrix[prevCharClass, charClass]
 
-            if queryCharIdx < m && queryLower[queryCharIdx] = candidateLower[i] then
-                if queryCharIdx = 0 then
-                    bonuses[i] <- bonuses[i] * Bonus.firstCharMultiplier
+        if queryCharIdx < m && queryLower[queryCharIdx] = candidateLower[i] then
+            if queryCharIdx = 0 then
+                bonuses[i] <- bonuses[i] * Bonus.firstCharMultiplier
 
-                if queryCharIdx < m then
-                    firstCharOccurence[queryCharIdx] <- i
-                    queryCharIdx <- queryCharIdx+1
+            if queryCharIdx < m then
+                firstCharOccurence[queryCharIdx] <- i
+                queryCharIdx <- queryCharIdx+1
 
-            prevCharClass <- charClass
+        prevCharClass <- charClass
 
-        // Prevent character omission
-        if queryCharIdx <> m then do! None
+    // Prevent character omission
+    if queryCharIdx <> m then
+        None
+    else
 
-        // Phase 2: Create the scores matrix
-        let scoreMatrix = Array2D.zeroCreate (m + 1) (n + 1)
-        let inline getMatrixPoint i j =
-            #if !FABLE_COMPILER
-            scoreMatrix[i, j]
-            #else
-            scoreMatrix[i, j] |> unbox |> Option.defaultValue ScoreMatrixPoint.Default
-            #endif
+    // Phase 2: Create the scores matrix
+    let scoreMatrix = Array2D.zeroCreate (m + 1) (n + 1)
+    let inline getMatrixPoint i j =
+        #if !FABLE_COMPILER
+        scoreMatrix[i, j]
+        #else
+        scoreMatrix[i, j] |> unbox |> Option.defaultValue {| Score = 0; Gap = 0; Consecutive = 0 |}
+        #endif
 
-        let mutable bestScore = 0
-        let mutable bestPos = 0, 0
+    let mutable bestScore = 0
+    let mutable bestPos = 0, 0
 
-        for i = 1 to m do
-            for j = firstCharOccurence[i-1] + 1 to n do // Prevent useless computing
-                let diag = getMatrixPoint (i-1) (j-1)
-                let left = getMatrixPoint i (j-1)
-
-                let mutable consecutive = 0
-
-                // Compute the score if choosing left -> s2
-                let gapPenalty =
-                    match left.Gap with
-                    | 0 -> Bonus.scoreGapStart
-                    | _ -> Bonus.scoreGapExtension
-                let s2 = left.Score + gapPenalty
-
-                // Compute the score if choosing diagonal -> s1
-                let s1 =
-                    if queryLower[i-1] = candidateLower[j-1] then // Is match
-                        let score = diag.Score + Bonus.scoreMatch
-                        let mutable bonus = bonuses[j-1]
-                        consecutive <- diag.Consecutive + 1
-
-                        if consecutive > 1 then // If extending the chunk
-                            /// The positional bonus of the first character of the chunk
-                            let firstBonus = bonuses[j-diag.Consecutive]
-                            if bonus >= Bonus.boundary && bonus > firstBonus then // Break consecutive chunk
-                                consecutive <- 1
-                            else
-                                bonus <- Math.Max(bonus, Math.Max(Bonus.consecutive, firstBonus))
-
-                        // Choose between starting a new chunk or extending the current
-                        if score + bonus < s2 then
-                            consecutive <- 0
-                            bonuses[j-1]
-                        else
-                            score + bonus
-                    else
-                        0
-
-                // Choose the best score
-                let score = Math.Max(Math.Max(s1, s2), 0)
-                scoreMatrix[i, j] <-
-                    { Score = score
-                      Gap =
-                        if s1 < s2 then // If left
-                            gapPenalty
-                        else
-                            0
-                      Consecutive = consecutive }
-
-                if score >= bestScore then
-                    bestScore <- score
-                    bestPos <- i, j
-
-        // --- DEBUG
-        // printf "         "
-        // candidate |> Seq.iter (printf "%c    ")
-        // printfn ""
-
-        // for i = 0 to scoreMatrix.Height - 1 do
-        //     if i > 0 then
-        //         printf "%c " query[i - 1]
-        //     else
-        //         printf "  "
-
-        //     for j = 0 to scoreMatrix.Width - 1 do
-        //         let s = scoreMatrix[i, j].Score
-        //         if s <> 0 then
-        //             Console.ForegroundColor <- ConsoleColor.Yellow
-        //         printf "%s  " <| s.ToString "000"
-        //         if s <> 0 then
-        //             Console.ForegroundColor <- ConsoleColor.White
-        //     printfn ""
-        // --- DEBUG
-
-        // Phase 3: Backtrack
-        let mutable i = fst bestPos
-        let mutable j = snd bestPos
-        let mutable matchingCharacter = Array.zeroCreate<bool> n
-
-        while i > 0 do
+    for i = 1 to m do
+        for j = firstCharOccurence[i-1] + 1 to n do // Prevent useless computing
             let diag = getMatrixPoint (i-1) (j-1)
             let left = getMatrixPoint i (j-1)
-            let s = getMatrixPoint i j |> _.Score
 
-            if s > left.Score && s > diag.Score then
-                matchingCharacter[j-1] <- true
-                i <- i-1
-            j <- j-1
+            let mutable consecutive = 0
 
-        return bestScore, matchingCharacter
-    }
+            // Compute the score if choosing left -> s2
+            let gapPenalty =
+                match left.Gap with
+                | 0 -> Bonus.scoreGapStart
+                | _ -> Bonus.scoreGapExtension
+            let s2 = left.Score + gapPenalty
+
+            // Compute the score if choosing diagonal -> s1
+            let s1 =
+                if queryLower[i-1] = candidateLower[j-1] then // Is match
+                    let score = diag.Score + Bonus.scoreMatch
+                    let mutable bonus = bonuses[j-1]
+                    consecutive <- diag.Consecutive + 1
+
+                    if consecutive > 1 then // If extending the chunk
+                        /// The positional bonus of the first character of the chunk
+                        let firstBonus = bonuses[j-diag.Consecutive]
+                        if bonus >= Bonus.boundary && bonus > firstBonus then // Break consecutive chunk
+                            consecutive <- 1
+                        else
+                            bonus <- Math.Max(bonus, Math.Max(Bonus.consecutive, firstBonus))
+
+                    // Choose between starting a new chunk or extending the current
+                    if score + bonus < s2 then
+                        consecutive <- 0
+                        bonuses[j-1]
+                    else
+                        score + bonus
+                else
+                    0
+
+            // Choose the best score
+            let score = Math.Max(Math.Max(s1, s2), 0)
+            scoreMatrix[i, j] <-
+                #if FABLE_COMPILER
+                {| Score = score
+                   Gap =
+                    if s1 < s2 then // If left
+                        gapPenalty
+                    else
+                        0
+                   Consecutive = consecutive |}
+                #else
+                { Score = score
+                  Gap =
+                    if s1 < s2 then // If left
+                        gapPenalty
+                    else
+                        0
+                  Consecutive = consecutive }
+                #endif
+
+            if score >= bestScore then
+                bestScore <- score
+                bestPos <- i, j
+
+    // --- DEBUG
+    // printf "         "
+    // candidate |> Seq.iter (printf "%c    ")
+    // printfn ""
+
+    // for i = 0 to scoreMatrix.Height - 1 do
+    //     if i > 0 then
+    //         printf "%c " query[i - 1]
+    //     else
+    //         printf "  "
+
+    //     for j = 0 to scoreMatrix.Width - 1 do
+    //         let s = scoreMatrix[i, j].Score
+    //         if s <> 0 then
+    //             Console.ForegroundColor <- ConsoleColor.Yellow
+    //         printf "%s  " <| s.ToString "000"
+    //         if s <> 0 then
+    //             Console.ForegroundColor <- ConsoleColor.White
+    //     printfn ""
+    // --- DEBUG
+
+    // Phase 3: Backtrack
+    let mutable i = fst bestPos
+    let mutable j = snd bestPos
+    let mutable matchingCharacter = Array.zeroCreate<bool> n
+
+    while i > 0 do
+        let diag = getMatrixPoint (i-1) (j-1)
+        let left = getMatrixPoint i (j-1)
+        let s = getMatrixPoint i j |> _.Score
+
+        if s > left.Score && s > diag.Score then
+            matchingCharacter[j-1] <- true
+            i <- i-1
+        j <- j-1
+
+    Some (bestScore, matchingCharacter)

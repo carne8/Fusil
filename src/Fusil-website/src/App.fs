@@ -1,51 +1,43 @@
 ﻿module App
 
-open Sutil
-open Sutil.CoreElements
+open Fable.Core.JsInterop
+open Browser
 
-let view() =
-    let results = Store.make List.empty
+let textInput = document.querySelector "#city-text-input" :?> Types.HTMLInputElement
+let resultsDiv = document.querySelector "#results"
 
-    let textChanged newText =
-        let sortedCities =
-            Cities.fr
-            |> Array.choose (fun city ->
-                match Fusil.fuzzyMatch newText city with
-                | Some x -> Some (city, x)
-                | None -> None
-            )
-            |> Array.sortByDescending (fun (city, (score, _)) -> score, -city.Length)
-            |> Array.map (fun (city, (_score, pos)) -> city, pos)
+textInput.oninput <- fun evt ->
+    let newText = evt.target?value
 
-        sortedCities
-        |> Array.take (min sortedCities.Length 30)
-        |> Array.toList
-        |> Store.set results
+    // Compute the results
+    let sortedCities =
+        Cities.fr
+        |> Array.choose (fun city ->
+            match Fusil.fuzzyMatch newText city with
+            | Some x -> Some (city, x)
+            | None -> None
+        )
+        |> Array.sortByDescending (fun (city, (score, _)) -> score, -city.Length)
+        |> Array.map (fun (city, (_score, pos)) -> city, pos)
 
+    // Clear previous results
+    resultsDiv.innerHTML <- ""
 
-    fragment [
-        disposeOnUnmount [ results ]
+    // Display results
+    sortedCities
+    |> Array.take (min sortedCities.Length 30)
+    |> Array.iter (fun (city, pos) ->
+        let span = document.createElement "span"
 
-        Html.h1 "Search a city"
+        for i in 0..city.Length-1 do
+            match pos[i] with
+            | true ->
+                let s = document.createElement "strong"
+                s.textContent <- unbox city[i]
+                s :> Types.Node
+            | false -> document.createTextNode <| unbox city[i] :> Types.Node
+            |> span.appendChild
+            |> ignore
 
-        Html.input [
-            Attr.typeText
-            Attr.placeholder "Nantes"
-            Ev.onTextInput textChanged
-        ]
-
-        Html.div [
-            Attr.className "results"
-
-            Bind.each (results, fun (city, pos) ->
-                Html.span [
-                    for i in 0..city.Length-1 do
-                        match pos[i] with
-                        | true -> Html.strong (text <| string city[i])
-                        | false -> text <| string city[i]
-                ]
-            )
-        ]
-    ]
-
-view() |> Program.mount
+        resultsDiv.appendChild span |> ignore
+    )

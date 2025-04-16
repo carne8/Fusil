@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "dotnet fable src --noCache -o build && vite build",
-    "start": "dotnet fable watch src -o build --run vite --host",
+    "start": "dotnet fable watch src -o build --run vite --host --clearScreen false",
     "preview": "vite preview",
     "clean": "dotnet fable clean -o build --yes"
   },
