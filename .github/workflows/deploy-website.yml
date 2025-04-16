@@ -20,40 +20,39 @@ jobs:
         with:
           dotnet-version: '9'
 
-      # --- Go to project directory
-      - name: Go to project directory
-        run: cd src/Fusil-website
-
       # --- Install node and pnpm
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10
           run_install: false
 
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache-dependency-path: ./src/Fusil-website/pnpm-lock.yaml
+          cache: pnpm
 
       # --- Install packages
       - name: Install nodejs dependencies
         run: pnpm install
+        working-directory: ./src/Fusil-website
 
       - name: Install dotnet dependencies
         run: dotnet tool restore
+        working-directory: ./src/Fusil-website
 
       # --- Build
       - name: Build
         run: pnpm build
+        working-directory: ./src/Fusil-website
 
       # --- Deploy
       - name: Upload static files as artifact
         id: deployment
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist/
+          path: ./src/Fusil-website/dist/
 
   deploy:
     environment:
