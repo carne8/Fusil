@@ -3,11 +3,9 @@
 // Reimplementation of the fzf algorithm
 // https://github.com/junegunn/fzf/blob/master/src/algo/algo.go
 
+open System
 open Shared.CharClass
 open Shared.Array2D
-open FsToolkit.ErrorHandling
-
-open System
 
 /// Contains bonuses and penalties (negative bonus)
 module private Bonus = // Copied from fzf code
