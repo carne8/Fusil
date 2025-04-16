@@ -1,6 +1,6 @@
-namespace Fusil
+module internal Shared.CharClass
 
-type internal CharClass =
+type CharClass =
     | CharWhite = 0
     | CharNonWord = 1
     | CharDelimiter = 2
@@ -9,7 +9,7 @@ type internal CharClass =
     | CharLetter = 5
     | CharNumber = 6
 
-module internal CharClass =
+module CharClass =
     open System
 
     /// highest ASCII code point
@@ -36,7 +36,7 @@ module internal CharClass =
         )
 
     let inline ofAscii (c: Char) = asciiCharClasses[int c]
-    let ofNonAscii (c: Char) =
+    let inline ofNonAscii (c: Char) =
         if Char.IsLower c then CharClass.CharLower
         elif Char.IsUpper c then CharClass.CharUpper
         elif Char.IsNumber c then CharClass.CharNumber
@@ -46,6 +46,6 @@ module internal CharClass =
         else CharClass.CharNonWord
 
     let ofChar c =
-        match Char.IsAscii c with
+        match c <= '\u007F' with
         | true -> ofAscii c
         | false -> ofNonAscii c
