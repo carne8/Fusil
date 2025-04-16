@@ -1,11 +1,10 @@
-# Fusil - [fzf](https://github.com/junegunn/fzf) as a library
+# Fusil - [fzf](https://github.com/junegunn/fzf) as a library [![NuGet Version](https://img.shields.io/nuget/v/fusil?logo=nuget)](https://www.nuget.org/packages/fusil/)
 Fusil is a port of the [fzf algorithm](https://github.com/junegunn/fzf/blob/master/src%2Falgo%2Falgo.go) for .NET.  
-Available at [![NuGet Version](https://img.shields.io/nuget/v/fusil?logo=nuget)](https://www.nuget.org/packages/fusil/)
+Available on the [Fusil NuGet page](https://www.nuget.org/packages/fusil/)  
 
-> ⚗️ Experimental
->
-> This library is in an early stage of development.
-> While it's usable, performance optimizations are still in progress.
+> [!IMPORTANT] Experimental  
+> This library is in an early stage of development.  
+> While it's usable, performance optimizations are still in progress.  
 > Contributions are welcome!
 
 # [Fable](https://fable.io) compatibility

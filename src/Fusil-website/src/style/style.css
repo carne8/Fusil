@@ -15,12 +15,51 @@ body {
   padding: 50px;
 }
 
+#repo-link {
+  position: absolute;
+  top: 0;
+  right: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 10px;
+  margin: 10px;
+
+  text-decoration: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  color: #1f0f02;
+  font-size: 22px;
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+  font-variation-settings:
+    "wght" 600,
+    "wdth" 100;
+  line-height: 0;
+
+  border-radius: 8px;
+  border: 3.5px solid transparent;
+  transition: border 0.08s linear;
+}
+
+#repo-link:hover {
+  border-color: #1f0f02;
+}
+
+#repo-link #icon {
+  width: 1.5em;
+  height: 1.5em;
+}
+
 h1 {
   margin-top: 90px;
-  margin-bottom: 20px;
+  margin-bottom: 5px;
 
   color: #1f0f02;
   font-size: 140px;
+  line-height: 140px;
   font-family: "Bricolage Grotesque", sans-serif;
   font-optical-sizing: auto;
   font-style: normal;
@@ -28,6 +67,29 @@ h1 {
     "wght" 800,
     "wdth" 80,
     "opsz" 70;
+}
+p {
+  margin-bottom: 50px;
+  color: #1f0f02;
+  font-size: 28px;
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+  font-variation-settings:
+    "wght" 600,
+    "wdth" 100;
+  text-align: center;
+}
+p a {
+  color: #7e3900;
+  font-weight: 600;
+
+  text-decoration: underline wavy #7e3900 2px;
+  transition: 0.08s linear;
+}
+p a:hover {
+  color: #dd6e05;
+  text-decoration-color: #dd6e05;
 }
 
 input {
@@ -76,8 +138,17 @@ input {
 }
 
 @media (max-width: 950px) {
+  #repo-link {
+    font-size: 18px;
+  }
+
   h1 {
+    margin-top: 1em;
     font-size: 100px;
+    line-height: 1em;
+  }
+  p {
+    font-size: 22px;
   }
 
   input {
@@ -90,7 +161,11 @@ input {
 }
 @media (max-width: 600px) {
   h1 {
+    margin-top: 70px;
     font-size: 70px;
+  }
+  p {
+    font-size: 18px;
   }
 
   input {
