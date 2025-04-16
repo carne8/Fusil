@@ -1,0 +1,65 @@
+name: Deploy website
+
+on:
+  push:
+    branches: [main]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+
+    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9'
+
+      # --- Install node and pnpm
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache-dependency-path: ./src/Fusil-website/pnpm-lock.yaml
+          cache: pnpm
+
+      # --- Install packages
+      - name: Install nodejs dependencies
+        run: pnpm install
+        working-directory: ./src/Fusil-website
+
+      - name: Install dotnet dependencies
+        run: dotnet tool restore
+        working-directory: ./src/Fusil-website
+
+      # --- Build
+      - name: Build
+        run: pnpm build
+        working-directory: ./src/Fusil-website
+
+      # --- Deploy
+      - name: Upload static files as artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./src/Fusil-website/dist/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
