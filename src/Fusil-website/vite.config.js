@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+    "base": "/Fusil/",
     "server": {
         "port": "5174",
         "watch": {
@@ -8,4 +9,4 @@ export default defineConfig({
             usePolling: true
         }
     },
-}) 
+})
