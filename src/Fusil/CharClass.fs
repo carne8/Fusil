@@ -1,4 +1,6 @@
-module internal Shared.CharClass
+module internal Shared.Char
+
+open System
 
 type CharClass =
     | CharWhite = 0
@@ -9,13 +11,21 @@ type CharClass =
     | CharLetter = 5
     | CharNumber = 6
 
-module CharClass =
-    open System
+/// highest ASCII code point
+let [<Literal>] private MaxASCII = 127
+let [<Literal>] private MaxASCIIChar = '\u007F'
+let [<Literal>] private delimiterChars = "/,:;|"
+let [<Literal>] private whiteChars = " \t\n\v\f\r\x85\xA0"
 
-    /// highest ASCII code point
-    let [<Literal>] MaxASCII = 127
-    let [<Literal>] delimiterChars = "/,:;|"
-    let [<Literal>] whiteChars = " \t\n\v\f\r\x85\xA0"
+
+module Char =
+    let (|Ascii|NonAscii|) (char: Char) =
+        if char <= MaxASCIIChar then
+            Ascii
+        else
+            NonAscii
+
+module CharClass =
     let [<Literal>] initialCharClass = CharClass.CharWhite
 
     let asciiCharClasses =
@@ -44,8 +54,3 @@ module CharClass =
         elif Char.IsWhiteSpace c then CharClass.CharWhite
         elif delimiterChars |> Seq.contains c then CharClass.CharDelimiter
         else CharClass.CharNonWord
-
-    let ofChar c =
-        match c <= '\u007F' with
-        | true -> ofAscii c
-        | false -> ofNonAscii c

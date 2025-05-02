@@ -1,11 +1,18 @@
 module internal Shared.Array2D
 
+open System
+open Shared.Slab
+
 #if FABLE_COMPILER
 open Fable.Core
 #endif
 
 // Custom implementation of Array2D for Fable compatibility
-type Array2D<'T>(arr: 'T array, height, width) =
+type Array2D<'T>(arr: 'T ArraySegment, height, width) =
+    let mutable arr = arr
+
+    new(arr: 'T array, height, width) = Array2D(ArraySegment arr, height, width)
+
     member _.Width = width
     member _.Height = height
 
@@ -27,19 +34,16 @@ module Array =
 #endif
 
 module Array2D =
-    let inline zeroCreate height width =
-        Array2D(Array.zeroCreate<'T> (width * height), height, width)
-
-    let inline create height width defaultValue =
-        let arr2d = zeroCreate height width
-        for i = 0 to height - 1 do
-            for j = 0 to width - 1 do
-                arr2d[i, j] <- defaultValue
-
-        arr2d
+    let allocFromSlab height width offset (slab: Slab) =
+        let newOffset, arraySegment = slab |> Slab.alloc16 offset (height * width)
+        newOffset, Array2D(arraySegment, height, width)
 
     let inline init height width init =
-        let arr2d = zeroCreate height width
+        let arr2d = Array2D(
+            Array.zeroCreate<'T> (width * height),
+            height,
+            width
+        )
         for i = 0 to height - 1 do
             for j = 0 to width - 1 do
                 arr2d[i, j] <- init i j
