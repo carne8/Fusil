@@ -85,7 +85,7 @@ module private Bonus = // Copied from fzf code
             (int CharClass.CharNumber + 1)
             (fun i j -> bonusFor (enum<CharClass> i) (enum<CharClass> j))
 
-#if DEBUG
+#if DEBUG && !FABLE_COMPILER
 let private debug (scoreMatrix: Array2D<int16>) (query: char array) (candidate: char array) =
     printf "         "
     candidate |> Seq.iter (printf "%c    ")
@@ -122,6 +122,10 @@ let fuzzyMatch
         None
     else
 
+    if m = 0 then
+        None
+    else
+
     // Phase 1:
     //  Assign bonus to each character of the candidate
     //  Check if all query characters exist in the candidate
@@ -149,13 +153,12 @@ let fuzzyMatch
     let mutable i = 0
     while i <= n-1 && queryCharIdx <= m do
         let mutable charClass = CharClass.CharWhite
-        match candidate[i] with
-        | Char.Ascii ->
+        if candidate[i] |> Char.isAscii then
             charClass <- candidate[i] |> CharClass.ofAscii
 
             if not caseSensitive && charClass = CharClass.CharUpper then
                 candidate[i] <- candidate[i] + char 32
-        | Char.NonAscii ->
+        else
             charClass <- candidate[i] |> CharClass.ofNonAscii
 
             if not caseSensitive && charClass = CharClass.CharUpper then
@@ -263,14 +266,20 @@ let fuzzyMatch
                 bestScore <- score
                 bestPos <- i, j
 
-    #if DEBUG
+    #if DEBUG && !FABLE_COMPILER
     debug scoreMatrix query candidate
     #endif
 
     // Phase 3: Backtrack
     let mutable i = fst bestPos
     let mutable j = snd bestPos
-    let mutable matchingCharacter = GC.AllocateUninitializedArray<bool> n
+
+    let mutable matchingCharacter =
+        #if FABLE_COMPILER
+        Array.zeroCreate n
+        #else
+        GC.AllocateUninitializedArray<bool> n
+        #endif
 
     while i >= 0 && j >= 0 do
         let diagScore = if i = 0 then 0s else scoreMatrix[i, j-1]

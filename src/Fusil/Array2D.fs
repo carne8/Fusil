@@ -1,6 +1,5 @@
 module internal Shared.Array2D
 
-open System
 open Shared.Slab
 
 #if FABLE_COMPILER
@@ -8,10 +7,19 @@ open Fable.Core
 #endif
 
 // Custom implementation of Array2D for Fable compatibility
-type Array2D<'T>(arr: 'T ArraySegment, height, width) =
+#if FABLE_COMPILER
+type Array2D<'T>(arr: 'T ArraySegment.ArraySegment, height, width) =
+#else
+type Array2D<'T>(arr: 'T System.ArraySegment, height, width) =
+#endif
     let mutable arr = arr
 
-    new(arr: 'T array, height, width) = Array2D(ArraySegment arr, height, width)
+    new(arr: 'T array, height, width) =
+        Array2D(
+            ArraySegment.createArraySegment 0 (height * width) arr,
+            height,
+            width
+        )
 
     member _.Width = width
     member _.Height = height

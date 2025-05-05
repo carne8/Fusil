@@ -6,6 +6,8 @@ open Browser
 let textInput = document.querySelector "#city-text-input" :?> Types.HTMLInputElement
 let resultsDiv = document.querySelector "#results"
 
+let slab = Shared.Slab.Slab.createDefault()
+
 textInput.oninput <- fun evt ->
     let newText = evt.target?value
 
@@ -13,7 +15,7 @@ textInput.oninput <- fun evt ->
     let sortedCities =
         Cities.fr
         |> Array.choose (fun city ->
-            match Fusil.fuzzyMatch newText city with
+            match Fusil.fuzzyMatch slab false true newText city with
             | Some x -> Some (city, x)
             | None -> None
         )

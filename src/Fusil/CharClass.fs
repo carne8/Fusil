@@ -19,11 +19,7 @@ let [<Literal>] private whiteChars = " \t\n\v\f\r\x85\xA0"
 
 
 module Char =
-    let (|Ascii|NonAscii|) (char: Char) =
-        if char <= MaxASCIIChar then
-            Ascii
-        else
-            NonAscii
+    let inline isAscii (char: Char) = char <= MaxASCIIChar
 
 module CharClass =
     let [<Literal>] initialCharClass = CharClass.CharWhite
