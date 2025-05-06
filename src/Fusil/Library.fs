@@ -155,6 +155,13 @@ module GoSimilar =
             arr[i] <- enumerator.Current.Value
             i <- i+1
 
+[<Struct>]
+type Result =
+    { Start: int
+      End: int
+      Score: int16
+      MatchingPositions: HashSet<int> }
+
 let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array) (input: string) =
     // Assume that pattern is given in lowercase if case-insensitive.
     // First check if there's a match and calculate bonus for each position.
@@ -162,7 +169,7 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
     // this phase as well (non-optimal alignment).
     let M = pattern.Length
     if M = 0 then
-        Some (0, 0, 0s, null) // TODO: Use a struct
+        Some { Start = 0; End = 0; Score = 0s; MatchingPositions = null }
     else
 
     let N = input.Length
@@ -173,10 +180,10 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
     // Since O(nm) algorithm can be prohibitively expensive for large input,
     // we fall back to the greedy algorithm.
     if N*M > slab.i16.Length then
-        None // Todo: fallback on a faster algorithm
+        None // TODO: fallback on a faster algorithm
     else
 
-    // Todo: build phase 1
+    // TODO: build phase 1
     // Phase 1. Optimized search for ASCII string
     let minIdx, maxIdx = 0, input.Length
 
@@ -258,9 +265,9 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
 
     if M = 1 then
         if withPos then
-            Some (0, 0, 0s, null) // TODO: output array
+            Some { Start = 0; End = 0; Score = 0s; MatchingPositions = null } // TODO: output array
         else
-            Some (0, 0, 0s, null)
+            Some { Start = 0; End = 0; Score = 0s; MatchingPositions = null }
     else
 
     // Phase 3: Fill in score matrix
@@ -340,7 +347,7 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
     #endif
 
     // Phase 4: Backtrace to find the character positions
-    let matchedPositions = posSet withPos M
+    let matchingPositions = posSet withPos M
     let mutable j = f0
     if withPos then
         let mutable i = M-1
@@ -366,7 +373,7 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
                     0s
 
             if s > s1 && (s > s2 || s = s2 && preferMatch) then
-                j+minIdx |> matchedPositions.Add |> ignore
+                j+minIdx |> matchingPositions.Add |> ignore
                 if i = 0 then
                     j <- j+1 // To cancel the `j <- j-1`
                     finished <- true
@@ -378,4 +385,7 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
     // Start offset we return here is only relevant when begin tiebreak is used.
     // However finding the accurate offset requires backtracking, and we don't
     // want to pay extra cost for the option that has lost its importance.
-    Some (minIdx + j, minIdx + maxScorePos + 1, maxScore, matchedPositions)
+    Some { Start = minIdx + j
+           End = minIdx + maxScorePos + 1
+           Score = maxScore
+           MatchingPositions = matchingPositions }
