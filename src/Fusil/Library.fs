@@ -205,7 +205,9 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
     let mutable pidx, lastIdx = 0, 0
     let mutable pchar0, pchar, prevH0, prevClass, inGap = pattern[0], pattern[0], 0s, CharClass.initialCharClass, false
 
-    for off = 0 to N-1 do
+    let mutable off = 0
+    let mutable finished = false
+    while off <= N-1 && not finished do
         let mutable char' = T[off]
         let mutable class' = CharClass.CharWhite
         if char' |> char |> Char.isAscii then // TODO: Convert char functions to runes
@@ -243,8 +245,7 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
                 maxScore <- score
                 maxScorePos <- off
                 if bonus >= Bonus.boundary then
-                    // break // TODO: Break...
-                    ()
+                    finished <- true
 
             inGap <- false
         else
@@ -258,6 +259,7 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
             inGap <- true
 
         prevH0 <- H0[off] // TODO: Benchmark
+        off <- off+1
 
     if pidx <> M then // Input doesn't contain pattern
         None
