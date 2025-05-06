@@ -267,9 +267,15 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
 
     if M = 1 then
         if withPos then
-            Some { Start = 0; End = 0; Score = 0s; MatchingPositions = null } // TODO: output array
+            Some { Start = minIdx + maxScorePos
+                   End = minIdx + maxScorePos
+                   Score = maxScore
+                   MatchingPositions = HashSet (minIdx + maxScorePos) }
         else
-            Some { Start = 0; End = 0; Score = 0s; MatchingPositions = null }
+            Some { Start = minIdx + maxScorePos
+                   End = minIdx + maxScorePos
+                   Score = maxScore
+                   MatchingPositions = null }
     else
 
     // Phase 3: Fill in score matrix
