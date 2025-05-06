@@ -1,15 +1,14 @@
-module Fusil
+module Fusil.Lib
 
 // Reimplementation of the fzf algorithm
 // https://github.com/junegunn/fzf/blob/master/src/algo/algo.go
 
 open System
-open Shared.Char
-open Shared.CharNormalization
-open Shared.Array2D
-open Shared.Slab
-open Shared
 open System.Collections.Generic
+
+open Fusil.Text
+open Fusil.TextNormalization
+open Fusil.Slab
 
 /// Contains bonuses and penalties (negative bonus)
 module private Bonus = // Copied from fzf code
@@ -221,7 +220,7 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
                 char' <- char' |> Rune.toLower
 
             if normalize then
-                char' <- CharNormalization.Rune.normalize char'
+                char' <- Rune.normalize char'
 
             T[off] <- char'
 

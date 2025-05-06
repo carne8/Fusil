@@ -1,4 +1,4 @@
-module Shared.Slab
+module Fusil.Slab
 
 type Slab =
     { i16: int16 array
@@ -15,7 +15,7 @@ module Slab =
           i32 = Array.zeroCreate SLAB_32_SIZE }
 
     let alloc16 offset size slab =
-        offset + size, slab.i16 |> Shared.ArraySegment.createArraySegment offset size
+        offset + size, slab.i16 |> ArraySegment.createArraySegment offset size
 
     let alloc32 offset size slab =
-        offset + size, slab.i32 |> Shared.ArraySegment.createArraySegment offset size
+        offset + size, slab.i32 |> ArraySegment.createArraySegment offset size

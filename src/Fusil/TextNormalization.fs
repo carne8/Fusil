@@ -1,4 +1,4 @@
-module Shared.CharNormalization
+module Fusil.TextNormalization
 
 open System.Text
 

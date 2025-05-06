@@ -22,8 +22,8 @@
     <Compile Include="Slab.fs" />
     <Compile Include="Array2D.fs" />
 
-    <Compile Include="CharNormalization.fs" />
-    <Compile Include="CharClass.fs" />
+    <Compile Include="TextNormalization.fs" />
+    <Compile Include="Text.fs" />
     <Compile Include="Library.fs" />
   </ItemGroup>
 

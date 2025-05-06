@@ -1,7 +1,7 @@
-module internal Shared.Char
+module internal Fusil.Text
 
 open System
-    open System.Text
+open System.Text
 
 type CharClass =
     | White = 0
@@ -16,7 +16,6 @@ type CharClass =
 let [<Literal>] private MaxAscii = 127
 let private delimiterRunes = "/,:;|".EnumerateRunes() |> Seq.toArray |> Array.map _.Value
 let private whiteRunes = " \t\n\v\f\r\x85\xA0".EnumerateRunes() |> Seq.toArray |> Array.map _.Value
-
 
 module Rune =
     let inline isAscii (codePoint: int) = codePoint <= MaxAscii
@@ -43,7 +42,7 @@ module CharClass =
                 CharClass.NonWord
         )
 
-    let inline ofAscii (c: Char) = asciiCharClasses[int c]
+    let inline ofAscii c = asciiCharClasses[c]
     let inline ofNonAscii (charInt: int) =
         let rune = Rune charInt
         if Rune.IsLower rune then CharClass.Lower

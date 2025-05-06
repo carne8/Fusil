@@ -1,6 +1,6 @@
-module internal Shared.Array2D
+module internal Fusil.Array2D
 
-open Shared.Slab
+open Fusil.Slab
 
 #if FABLE_COMPILER
 open Fable.Core

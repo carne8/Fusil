@@ -1,4 +1,4 @@
-module Shared.ArraySegment
+module Fusil.ArraySegment
 
 #if FABLE_COMPILER
 type ArraySegment<'T>(arr: 'T array, offset: int) =
