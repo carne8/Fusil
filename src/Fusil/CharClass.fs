@@ -1,52 +1,55 @@
 module internal Shared.Char
 
 open System
+    open System.Text
 
 type CharClass =
-    | CharWhite = 0
-    | CharNonWord = 1
-    | CharDelimiter = 2
-    | CharLower = 3
-    | CharUpper = 4
-    | CharLetter = 5
-    | CharNumber = 6
+    | White = 0
+    | NonWord = 1
+    | Delimiter = 2
+    | Lower = 3
+    | Upper = 4
+    | Letter = 5
+    | Number = 6
 
 /// highest ASCII code point
-let [<Literal>] private MaxASCII = 127
-let [<Literal>] private MaxASCIIChar = '\u007F'
-let [<Literal>] private delimiterChars = "/,:;|"
-let [<Literal>] private whiteChars = " \t\n\v\f\r\x85\xA0"
+let [<Literal>] private MaxAscii = 127
+let private delimiterRunes = "/,:;|".EnumerateRunes() |> Seq.toArray |> Array.map _.Value
+let private whiteRunes = " \t\n\v\f\r\x85\xA0".EnumerateRunes() |> Seq.toArray |> Array.map _.Value
 
 
-module Char =
-    let inline isAscii (char: Char) = char <= MaxASCIIChar
+module Rune =
+    let inline isAscii (codePoint: int) = codePoint <= MaxAscii
+    let inline toLower (codePoint: int) = Rune codePoint |> Rune.ToLowerInvariant |> _.Value
 
 module CharClass =
-    let [<Literal>] initialCharClass = CharClass.CharWhite
+    let [<Literal>] initialCharClass = CharClass.White
 
     let asciiCharClasses =
-        Array.init<CharClass> (MaxASCII + 1) (fun idx ->
+        Array.init<CharClass> (MaxAscii + 1) (fun idx ->
             let c = char idx
+
             if c >= 'a' && c <= 'z' then
-                CharClass.CharLower
+                CharClass.Lower
             elif c >= 'A' && c <= 'Z' then
-                CharClass.CharUpper
+                CharClass.Upper
             elif c >= '0' && c <= '9' then
-                CharClass.CharNumber
-            elif whiteChars |> Seq.contains c then
-                CharClass.CharWhite
-            elif delimiterChars |> Seq.contains c then
-                CharClass.CharDelimiter
+                CharClass.Number
+            elif whiteRunes |> Array.contains idx then
+                CharClass.White
+            elif delimiterRunes |> Array.contains idx then
+                CharClass.Delimiter
             else
-                CharClass.CharNonWord
+                CharClass.NonWord
         )
 
     let inline ofAscii (c: Char) = asciiCharClasses[int c]
-    let inline ofNonAscii (c: Char) =
-        if Char.IsLower c then CharClass.CharLower
-        elif Char.IsUpper c then CharClass.CharUpper
-        elif Char.IsNumber c then CharClass.CharNumber
-        elif Char.IsLetter c then CharClass.CharLetter
-        elif Char.IsWhiteSpace c then CharClass.CharWhite
-        elif delimiterChars |> Seq.contains c then CharClass.CharDelimiter
-        else CharClass.CharNonWord
+    let inline ofNonAscii (charInt: int) =
+        let rune = Rune charInt
+        if Rune.IsLower rune then CharClass.Lower
+        elif Rune.IsUpper rune then CharClass.Upper
+        elif Rune.IsNumber rune then CharClass.Number
+        elif Rune.IsLetter rune then CharClass.Letter
+        elif Rune.IsWhiteSpace rune then CharClass.White
+        elif delimiterRunes |> Array.contains rune.Value then CharClass.Delimiter
+        else CharClass.NonWord

@@ -55,14 +55,14 @@ module private Bonus = // Copied from fzf code
 
     let bonusFor prevClass class' =
         let b =
-            if class' > CharClass.CharNonWord then
+            if class' > CharClass.NonWord then
                 match prevClass with
                 // Word boundary after whitespace
-                | CharClass.CharWhite -> Some bonusBoundaryWhite
+                | CharClass.White -> Some bonusBoundaryWhite
                 // Word boundary after a delimiter character
-                | CharClass.CharDelimiter -> Some bonusBoundaryDelimiter
+                | CharClass.Delimiter -> Some bonusBoundaryDelimiter
                 // Word boundary
-                | CharClass.CharNonWord -> Some boundary
+                | CharClass.NonWord -> Some boundary
                 | _ -> None
             else
                 None
@@ -70,21 +70,21 @@ module private Bonus = // Copied from fzf code
         match b with
         | Some b -> b
         | _ ->
-            if prevClass = CharClass.CharLower && class' = CharClass.CharUpper
-               || prevClass <> CharClass.CharNumber && class' = CharClass.CharNumber then
+            if prevClass = CharClass.Lower && class' = CharClass.Upper
+               || prevClass <> CharClass.Number && class' = CharClass.Number then
                 // camelCase letter123
                 bonusCamel123
             else
                 match class' with
-                | CharClass.CharNonWord | CharClass.CharDelimiter -> bonusNonWord
-                | CharClass.CharWhite -> bonusBoundaryWhite
+                | CharClass.NonWord | CharClass.Delimiter -> bonusNonWord
+                | CharClass.White -> bonusBoundaryWhite
                 | _ -> 0s
 
     // A minor optimization that can give yet another 5% performance boost
     let matrix =
         Array2D.init
-            (int CharClass.CharNumber + 1)
-            (int CharClass.CharNumber + 1)
+            (int CharClass.Number + 1)
+            (int CharClass.Number + 1)
             (fun i j -> bonusFor (enum<CharClass> i) (enum<CharClass> j))
 
 #if DEBUG && !FABLE_COMPILER
@@ -209,19 +209,19 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
     let mutable finished = false
     while off <= N-1 && not finished do
         let mutable char' = T[off]
-        let mutable class' = CharClass.CharWhite
-        if char' |> char |> Char.isAscii then // TODO: Convert char functions to runes
+        let mutable class' = CharClass.White
+        if char' |> Rune.isAscii then
             class' <- CharClass.asciiCharClasses[char']
-            if not caseSensitive && class' = CharClass.CharUpper then
+            if not caseSensitive && class' = CharClass.Upper then
                 char' <- char' + 32
                 T[off] <- char'
         else
-            class' <- char' |> char |> CharClass.ofNonAscii
-            if not caseSensitive && class' = CharClass.CharUpper then
-                char' <- char' |> char |> Char.ToLower |> int
+            class' <- char' |> CharClass.ofNonAscii
+            if not caseSensitive && class' = CharClass.Upper then
+                char' <- char' |> Rune.toLower
 
             if normalize then
-                char' <- CharNormalization.Char.normalize (char' |> char) |> int
+                char' <- CharNormalization.Rune.normalize char'
 
             T[off] <- char'
 
