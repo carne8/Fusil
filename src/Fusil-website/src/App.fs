@@ -2,11 +2,12 @@
 
 open Fable.Core.JsInterop
 open Browser
+open Fusil
 
 let textInput = document.querySelector "#city-text-input" :?> Types.HTMLInputElement
 let resultsDiv = document.querySelector "#results"
 
-let slab = Shared.Slab.Slab.createDefault()
+let slab = Slab.createDefault()
 
 textInput.oninput <- fun evt ->
     let newText = evt.target?value
@@ -15,12 +16,12 @@ textInput.oninput <- fun evt ->
     let sortedCities =
         Cities.fr
         |> Array.choose (fun city ->
-            match Fusil.fuzzyMatch slab false true newText city with
+            match Fusil.fuzzyMatch false true true slab newText city with
             | Some x -> Some (city, x)
             | None -> None
         )
-        |> Array.sortByDescending (fun (city, (score, _)) -> score, -city.Length)
-        |> Array.map (fun (city, (_score, pos)) -> city, pos)
+        |> Array.sortByDescending (fun (city, res) -> res.Score, -city.Length)
+        |> Array.map (fun (city, res) -> city, res.MatchingPositions)
 
     // Clear previous results
     resultsDiv.innerHTML <- ""
@@ -32,7 +33,7 @@ textInput.oninput <- fun evt ->
         let span = document.createElement "span"
 
         for i in 0..city.Length-1 do
-            match pos[i] with
+            match pos.Contains i with
             | true ->
                 let s = document.createElement "strong"
                 s.textContent <- unbox city[i]

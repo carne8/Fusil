@@ -18,12 +18,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="ArraySegment.fs" />
     <Compile Include="Slab.fs" />
-    <Compile Include="Array2D.fs" />
-
     <Compile Include="TextNormalization.fs" />
     <Compile Include="Text.fs" />
+
+    <Compile Include="Score.fs" />
     <Compile Include="Library.fs" />
   </ItemGroup>
 

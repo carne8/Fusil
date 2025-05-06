@@ -1,4 +1,4 @@
-module Fusil.Lib
+module Fusil.Fusil
 
 // Reimplementation of the fzf algorithm
 // https://github.com/junegunn/fzf/blob/master/src/algo/algo.go
@@ -8,102 +8,16 @@ open System.Collections.Generic
 
 open Fusil.Text
 open Fusil.TextNormalization
-open Fusil.Slab
 
-/// Contains bonuses and penalties (negative bonus)
-module private Bonus = // Copied from fzf code
-    let [<Literal>] scoreMatch = 16s
-    let [<Literal>] scoreGapStart = -3s
-    let [<Literal>] scoreGapExtension = -1s
-
-    // We prefer matches at the beginning of a word, but the bonus should not be
-    // too great to prevent the longer acronym matches from always winning over
-    // shorter fuzzy matches. The bonus point here was specifically chosen that
-    // the bonus is cancelled when the gap between the acronyms grows over
-    // 8 characters, which is approximately the average length of the words found
-    // in web2 dictionary and my file system.
-    let [<Literal>] boundary = scoreMatch / 2s
-
-    // Although bonus point for non-word characters is non-contextual, we need it
-    // for computing bonus points for consecutive chunks starting with a non-word
-    // character.
-    let [<Literal>] bonusNonWord = scoreMatch / 2s
-
-    // Edge-triggered bonus for matches in camelCase words.
-    // Compared to word-boundary case, they don't accompany single-character gaps
-    // (e.g. FooBar vs. foo-bar), so we deduct bonus point accordingly.
-    let [<Literal>] bonusCamel123 = boundary + scoreGapExtension
-
-    // Minimum bonus point given to characters in consecutive chunks.
-    // Note that bonus points for consecutive matches shouldn't have needed if we
-    // used fixed match score as in the original algorithm.
-    let [<Literal>] consecutive = -(scoreGapStart + scoreGapExtension)
-
-    // The first character in the typed pattern usually has more significance
-    // than the rest so it's important that it appears at special positions where
-    // bonus points are given, e.g. "to-go" vs. "ongoing" on "og" or on "ogo".
-    // The amount of the extra bonus should be limited so that the gap penalty is
-    // still respected.
-    let [<Literal>] firstCharMultiplier = 2s
-
-    // Extra bonus for word boundary after whitespace character or beginning of the string
-    let [<Literal>] bonusBoundaryWhite = boundary + 2s
-
-    // Extra bonus for word boundary after slash, colon, semicolon, and comma
-    let [<Literal>] bonusBoundaryDelimiter = boundary + 2s
-
-    let bonusFor prevClass class' =
-        let b =
-            if class' > CharClass.NonWord then
-                match prevClass with
-                // Word boundary after whitespace
-                | CharClass.White -> Some bonusBoundaryWhite
-                // Word boundary after a delimiter character
-                | CharClass.Delimiter -> Some bonusBoundaryDelimiter
-                // Word boundary
-                | CharClass.NonWord -> Some boundary
-                | _ -> None
-            else
-                None
-
-        match b with
-        | Some b -> b
-        | _ ->
-            if prevClass = CharClass.Lower && class' = CharClass.Upper
-               || prevClass <> CharClass.Number && class' = CharClass.Number then
-                // camelCase letter123
-                bonusCamel123
-            else
-                match class' with
-                | CharClass.NonWord | CharClass.Delimiter -> bonusNonWord
-                | CharClass.White -> bonusBoundaryWhite
-                | _ -> 0s
-
-    // A minor optimization that can give yet another 5% performance boost
-    let matrix =
-        Array2D.init
-            (int CharClass.Number + 1)
-            (int CharClass.Number + 1)
-            (fun i j -> bonusFor (enum<CharClass> i) (enum<CharClass> j))
+[<Struct>]
+type FuzzyResult =
+    { Start: int
+      End: int
+      Score: int16
+      MatchingPositions: HashSet<int> }
 
 #if DEBUG && !FABLE_COMPILER
-// let private debug (scoreMatrix: Array2D<int16>) (query: char array) (candidate: char array) =
-//     printf "         "
-//     candidate |> Seq.iter (printf "%c    ")
-//     printfn ""
-
-//     for i = 0 to scoreMatrix.Height - 1 do
-//         printf "%c " query[i]
-
-//         for j = 0 to scoreMatrix.Width - 1 do
-//             let s = scoreMatrix[i, j]
-//             if s <> 0s then
-//                 Console.ForegroundColor <- ConsoleColor.Yellow
-//             printf "%s  " <| s.ToString "000"
-//             if s <> 0s then
-//                 Console.ForegroundColor <- ConsoleColor.White
-//         printfn ""
-let private debug (T: int Collections.Generic.IList) (pattern: char array) (F: int32 Collections.Generic.IList) (lastIdx: int) (H: int16 Collections.Generic.IList) (C: int16 Collections.Generic.IList) =
+let private debug (T: int Span) (pattern: char array) (F: int32 Span) (lastIdx: int) (H: int16 Span) (C: int16 Span) =
     let width = lastIdx - int F[0] + 1
 
     for i in 0 .. pattern.Length - 1 do
@@ -146,20 +60,6 @@ let posSet withPos (length: int) =
     else
         null
 
-module GoSimilar =
-    let copyRunes (arr: int32 Collections.Generic.IList) (str: string) =
-        let mutable enumerator = str.EnumerateRunes()
-        let mutable i = 0
-        while enumerator.MoveNext() do
-            arr[i] <- enumerator.Current.Value
-            i <- i+1
-
-[<Struct>]
-type Result =
-    { Start: int
-      End: int
-      Score: int16
-      MatchingPositions: HashSet<int> }
 
 let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array) (input: string) =
     // Assume that pattern is given in lowercase if case-insensitive.
@@ -189,15 +89,24 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
     // Reuse pre-allocated integer slice to avoid unnecessary sweeping of garbages
     let mutable offset16 = 0
     let mutable offset32 = 0
-    let mutable offset16, H0 = slab |> Slab.alloc16 offset16 N
-    let mutable offset16, C0 = slab |> Slab.alloc16 offset16 N
+    let mutable H0 = slab.i16.AsSpan(offset16, N)
+    offset16 <- offset16 + N
+
+    let mutable C0 = slab.i16.AsSpan(offset16, N)
+    offset16 <- offset16 + N
+
     // Bonus point for each position
-    let mutable offset16, B = slab |> Slab.alloc16 offset16 N
+    let mutable B = slab.i16.AsSpan(offset16, N)
+    offset16 <- offset16 + N
+
     // The first occurrence of each character in the pattern
-    let mutable offset32, F = slab |> Slab.alloc32 offset32 M
+    let mutable F = slab.i32.AsSpan(offset32, M)
+    offset32 <- offset32 + M
+
     // Rune array
-    let mutable _, T = slab |> Slab.alloc32 offset32 N
-    input |> GoSimilar.copyRunes T
+    let mutable T = slab.i32.AsSpan(offset32, N)
+    offset32 <- offset32 + N
+    String.copyRunes(input, T)
 
     // Phase 2: Calculate bonus for each point
     let mutable maxScore, maxScorePos = 0s, 0
@@ -207,36 +116,37 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
     let mutable off = 0
     let mutable finished = false
     while off <= N-1 && not finished do
-        let mutable char' = T[off]
-        let mutable class' = CharClass.White
-        if char' |> Rune.isAscii then
-            class' <- CharClass.asciiCharClasses[char']
-            if not caseSensitive && class' = CharClass.Upper then
-                char' <- char' + 32
-                T[off] <- char'
+        let mutable charCodePoint = T[off]
+        let mutable charClass = CharClass.White
+
+        if charCodePoint |> Rune.isAscii then
+            charClass <- CharClass.asciiCharClasses[charCodePoint]
+            if not caseSensitive && charClass = CharClass.Upper then
+                charCodePoint <- charCodePoint + 32
+                T[off] <- charCodePoint
         else
-            class' <- char' |> CharClass.ofNonAscii
-            if not caseSensitive && class' = CharClass.Upper then
-                char' <- char' |> Rune.toLower
+            charClass <- charCodePoint |> CharClass.ofNonAscii
+            if not caseSensitive && charClass = CharClass.Upper then
+                charCodePoint <- charCodePoint |> Rune.toLower
 
             if normalize then
-                char' <- Rune.normalize char'
+                charCodePoint <- Rune.normalize charCodePoint
 
-            T[off] <- char'
+            T[off] <- charCodePoint
 
-        let bonus = Bonus.matrix[int prevClass, int class']
+        let bonus = Bonus.matrix[int prevClass, int charClass]
         B[off] <- bonus
-        prevClass <- class'
+        prevClass <- charClass
 
-        if char char' = pchar then
+        if char charCodePoint = pchar then
             if pidx < M then
                 F[pidx] <- off
                 pidx <- pidx+1
                 pchar <- pattern[min pidx (M-1)]
             lastIdx <- off
 
-        if char char' = pchar0 then
-            let score = Bonus.scoreMatch + bonus*Bonus.firstCharMultiplier
+        if char charCodePoint = pchar0 then
+            let score = Score.match' + bonus*Bonus.firstCharMultiplier
             H0[off] <- score
             C0[off] <- 1s
 
@@ -250,9 +160,9 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
         else
             H0[off] <-
                 if inGap then
-                    max (prevH0 + Bonus.scoreGapExtension) 0s
+                    max (prevH0 + Score.gapExtension) 0s
                 else
-                    max (prevH0 + Bonus.scoreGapStart) 0s
+                    max (prevH0 + Score.gapStart) 0s
 
             C0[off] <- 0s
             inGap <- true
@@ -281,48 +191,46 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
     // Unlike the original algorithm, we do not allow omission.
     let f0 = F[0]
     let width = lastIdx - f0 + 1
-    let mutable offset16, H = slab |> Slab.alloc16 offset16 (width*M)
-    // copy(H, H0[f0:lastIdx+1]) // TODO: Consider usage of span
-    for i = f0 to lastIdx do
-        H[i] <- H0[i]
+
+    let mutable H = slab.i16.AsSpan(offset16, width*M)
+    offset16 <- offset16 + width*M
+    H0.CopyTo H
 
     // Possible length of consecutive chunk at each position.
-    let mutable _, C = slab |> Slab.alloc16 offset16 (width*M)
-    // TODO: Consider usage of span
-    for i = f0 to lastIdx do
-        C[i] <- C0[i]
+    let mutable C = slab.i16.AsSpan(offset16, width*M)
+    C0.CopyTo C
 
-    let FSub = F.Slice(1, F.Count - 1)
-    let PSub = ArraySegment(pattern, 1, FSub.Count)
-    for off = 0 to FSub.Count - 1 do
+    let FSub = F.Slice(1, F.Length - 1)
+    let PSub = pattern.AsSpan(1, FSub.Length)
+    for off = 0 to FSub.Length - 1 do
         let f = FSub[off]
         let pchar = PSub[off]
         let pidx = off + 1
         let row = pidx * width
         let mutable inGap = false
         let TSub = T.Slice(f, lastIdx+1 - f)
-        let BSub = B.Slice(f).Slice(0, TSub.Count)
-        let mutable CSub = C.Slice(row+f-f0).Slice(0, TSub.Count)
-        let CDiag = C.Slice(row+f-f0-1-width).Slice(0, TSub.Count)
-        let mutable HSub = H.Slice(row+f-f0).Slice(0, TSub.Count)
-        let HDiag = H.Slice(row+f-f0-1-width).Slice(0, TSub.Count)
-        let mutable HLeft = H.Slice(row+f-f0-1).Slice(0, TSub.Count)
+        let BSub = B.Slice(f).Slice(0, TSub.Length)
+        let mutable CSub = C.Slice(row+f-f0).Slice(0, TSub.Length)
+        let CDiag = C.Slice(row+f-f0-1-width).Slice(0, TSub.Length)
+        let mutable HSub = H.Slice(row+f-f0).Slice(0, TSub.Length)
+        let HDiag = H.Slice(row+f-f0-1-width).Slice(0, TSub.Length)
+        let mutable HLeft = H.Slice(row+f-f0-1).Slice(0, TSub.Length)
         HLeft[0] <- 0s
 
-        for off = 0 to TSub.Count - 1 do
+        for off = 0 to TSub.Length - 1 do
             let c = char TSub[off]
             let col = off + f
             let mutable consecutive = 0s
 
             let s2 =
                 if inGap then
-                    HLeft[off] + Bonus.scoreGapExtension
+                    HLeft[off] + Score.gapExtension
                 else
-                    HLeft[off] + Bonus.scoreGapStart
+                    HLeft[off] + Score.gapStart
 
             let s1 =
                 if pchar = c then
-                    let score = HDiag[off] + Bonus.scoreMatch
+                    let score = HDiag[off] + Score.match'
                     let mutable b = BSub[off]
                     consecutive <- CDiag[off] + 1s
                     if consecutive > 1s then
@@ -386,7 +294,7 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
                     finished <- true
                 i <- i-1
 
-            preferMatch <- C[I+j0] > 1s || I+width+j0+1 < C.Count && C[I+width+j0+1] > 0s
+            preferMatch <- C[I+j0] > 1s || I+width+j0+1 < C.Length && C[I+width+j0+1] > 0s
             j <- j-1
 
     // Start offset we return here is only relevant when begin tiebreak is used.

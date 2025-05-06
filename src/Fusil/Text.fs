@@ -1,16 +1,6 @@
 module internal Fusil.Text
 
-open System
 open System.Text
-
-type CharClass =
-    | White = 0
-    | NonWord = 1
-    | Delimiter = 2
-    | Lower = 3
-    | Upper = 4
-    | Letter = 5
-    | Number = 6
 
 /// highest ASCII code point
 let [<Literal>] private MaxAscii = 127
@@ -20,6 +10,23 @@ let private whiteRunes = " \t\n\v\f\r\x85\xA0".EnumerateRunes() |> Seq.toArray |
 module Rune =
     let inline isAscii (codePoint: int) = codePoint <= MaxAscii
     let inline toLower (codePoint: int) = Rune codePoint |> Rune.ToLowerInvariant |> _.Value
+
+module String =
+    let copyRunes(str: string, arr: System.Span<int32>) =
+        let mutable enumerator = str.EnumerateRunes()
+        let mutable i = 0
+        while enumerator.MoveNext() do
+            arr[i] <- enumerator.Current.Value
+            i <- i+1
+
+type CharClass =
+    | White = 0
+    | NonWord = 1
+    | Delimiter = 2
+    | Lower = 3
+    | Upper = 4
+    | Letter = 5
+    | Number = 6
 
 module CharClass =
     let [<Literal>] initialCharClass = CharClass.White
