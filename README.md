@@ -9,14 +9,11 @@ Available on the [Fusil NuGet page](https://www.nuget.org/packages/fusil/)
 > Contributions are welcome!
 
 # [Fable](https://fable.io) compatibility
-This library is compatible with [Fable](https://fable.io), making it usable in JavaScript environments via F#.
+This library is **NOT** compatible with [Fable](https://fable.io).  
+However, there is a good JS alternative available: [fzf-for-js](https://fzf.netlify.app/docs/latest).
 
 # Demo
-### Fusil with Fable
-A live demo built with F# and Fable is available here: [carne8.github.io/Fusil](https://carne8.github.io/Fusil)
-
-### Fusil with .NET
-A .NET demo is currently in development.  
+A demo is currently in development.  
 This library will also be integrated into one of my upcoming projects: [Starter](https://github.com/carne8/Starter).  
 (#ad 😌)
 

@@ -14,7 +14,7 @@ type FuzzyResult =
     { Start: int
       End: int
       Score: int16
-      MatchingPositions: HashSet<int> }
+      MatchingPositions: bool array }
 
 #if DEBUG && !FABLE_COMPILER
 let private debug (T: int Span) (pattern: char array) (F: int32 Span) (lastIdx: int) (H: int16 Span) (C: int16 Span) =
@@ -54,9 +54,9 @@ let private debug (T: int Span) (pattern: char array) (F: int32 Span) (lastIdx: 
         printfn ""
 #endif
 
-let posSet withPos (length: int) =
+let posArray withPos (length: int) =
     if withPos then
-        HashSet length
+        Array.zeroCreate<bool> length
     else
         null
 
@@ -179,7 +179,7 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
             Some { Start = minIdx + maxScorePos
                    End = minIdx + maxScorePos + 1
                    Score = maxScore
-                   MatchingPositions = HashSet [| minIdx + maxScorePos |] }
+                   MatchingPositions = Array.init N (fun idx -> idx = minIdx + maxScorePos) }
         else
             Some { Start = minIdx + maxScorePos
                    End = minIdx + maxScorePos
@@ -262,7 +262,7 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
     // #endif
 
     // Phase 4: Backtrace to find the character positions
-    let matchingPositions = posSet withPos M
+    let matchingPositions = posArray withPos N
     let mutable j = f0
     if withPos then
         let mutable i = M-1
@@ -288,7 +288,7 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
                     0s
 
             if s > s1 && (s > s2 || s = s2 && preferMatch) then
-                j+minIdx |> matchingPositions.Add |> ignore
+                matchingPositions[j+minIdx] <- true
                 if i = 0 then
                     j <- j+1 // To cancel the `j <- j-1`
                     finished <- true
