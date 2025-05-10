@@ -177,9 +177,9 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
     if M = 1 then
         if withPos then
             Some { Start = minIdx + maxScorePos
-                   End = minIdx + maxScorePos
+                   End = minIdx + maxScorePos + 1
                    Score = maxScore
-                   MatchingPositions = HashSet (minIdx + maxScorePos) }
+                   MatchingPositions = HashSet [| minIdx + maxScorePos |] }
         else
             Some { Start = minIdx + maxScorePos
                    End = minIdx + maxScorePos
@@ -194,11 +194,11 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
 
     let mutable H = slab.i16.AsSpan(offset16, width*M)
     offset16 <- offset16 + width*M
-    H0.CopyTo H
+    H0.Slice(f0, width).CopyTo H
 
     // Possible length of consecutive chunk at each position.
     let mutable C = slab.i16.AsSpan(offset16, width*M)
-    C0.CopyTo C
+    C0.Slice(f0, width).CopyTo C
 
     let FSub = F.Slice(1, F.Length - 1)
     let PSub = pattern.AsSpan(1, FSub.Length)
@@ -257,9 +257,9 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
                 maxScorePos <- col
             HSub[off] <- score
 
-    #if DEBUG && !FABLE_COMPILER
-    debug T pattern F lastIdx H C
-    #endif
+    // #if DEBUG && !FABLE_COMPILER
+    // debug T pattern F lastIdx H C
+    // #endif
 
     // Phase 4: Backtrace to find the character positions
     let matchingPositions = posSet withPos M
@@ -298,7 +298,7 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
             j <- j-1
 
     // Start offset we return here is only relevant when begin tiebreak is used.
-    // However finding the accurate offset requires backtracking, and we don't
+    // However, finding the accurate offset requires backtracking, and we don't
     // want to pay extra cost for the option that has lost its importance.
     Some { Start = minIdx + j
            End = minIdx + maxScorePos + 1
