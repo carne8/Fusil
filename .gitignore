@@ -56,3 +56,4 @@ nunit-*.xml
 .idea/
 .vs/
 .vscode/
+build/

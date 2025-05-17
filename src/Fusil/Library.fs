@@ -4,7 +4,7 @@ module Fusil.Fusil
 // https://github.com/junegunn/fzf/blob/master/src/algo/algo.go
 
 open System
-open System.Collections.Generic
+open System.Text
 
 open Fusil.Text
 open Fusil.TextNormalization
@@ -17,7 +17,7 @@ type FuzzyResult =
       MatchingPositions: bool array }
 
 #if DEBUG && !FABLE_COMPILER
-let private debug (T: int Span) (pattern: char array) (F: int32 Span) (lastIdx: int) (H: int16 Span) (C: int16 Span) =
+let private debug (T: int Span) (pattern: Rune array) (F: int32 Span) (lastIdx: int) (H: int16 Span) (C: int16 Span) =
     let width = lastIdx - int F[0] + 1
 
     for i in 0 .. pattern.Length - 1 do
@@ -27,10 +27,10 @@ let private debug (T: int Span) (pattern: char array) (F: int32 Span) (lastIdx: 
         if i = 0 then
             printf "  "
             for j in f .. lastIdx do
-                printf " %c " (char T[j])
+                printf " %s " (T[j] |> Rune |> string)
             printfn ""
 
-        printf "%c " pattern[i]
+        printf "%s " (string pattern[i])
 
         for idx in int F[0] .. f - 1 do
             printf " 0 "
@@ -61,7 +61,7 @@ let posArray withPos (length: int) =
         null
 
 
-let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array) (input: string) =
+let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: Rune array) (input: string) =
     // Assume that pattern is given in lowercase if case-insensitive.
     // First check if there's a match and calculate bonus for each position.
     // If the input string is too long, consider finding the matching chars in
@@ -138,14 +138,14 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
         B[off] <- bonus
         prevClass <- charClass
 
-        if char charCodePoint = pchar then
+        if charCodePoint = pchar.Value then
             if pidx < M then
                 F[pidx] <- off
                 pidx <- pidx+1
                 pchar <- pattern[min pidx (M-1)]
             lastIdx <- off
 
-        if char charCodePoint = pchar0 then
+        if charCodePoint = pchar0.Value then
             let score = Score.match' + bonus*Bonus.firstCharMultiplier
             H0[off] <- score
             C0[off] <- 1s
@@ -208,6 +208,7 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
         let pidx = off + 1
         let row = pidx * width
         let mutable inGap = false
+
         let TSub = T.Slice(f, lastIdx+1 - f)
         let BSub = B.Slice(f).Slice(0, TSub.Length)
         let mutable CSub = C.Slice(row+f-f0).Slice(0, TSub.Length)
@@ -218,7 +219,7 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
         HLeft[0] <- 0s
 
         for off = 0 to TSub.Length - 1 do
-            let c = char TSub[off]
+            let c = TSub[off]
             let col = off + f
             let mutable consecutive = 0s
 
@@ -229,7 +230,7 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: char array
                     HLeft[off] + Score.gapStart
 
             let s1 =
-                if pchar = c then
+                if pchar.Value = c then
                     let score = HDiag[off] + Score.match'
                     let mutable b = BSub[off]
                     consecutive <- CDiag[off] + 1s

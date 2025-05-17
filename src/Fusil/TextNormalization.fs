@@ -487,14 +487,14 @@ module Rune =
                 codePoint
 
 module String =
-    let normalize (str: string) =
+    let normalize (str: string) : Rune array =
         let mutable runes = str.EnumerateRunes()
-        let stringBuilder = StringBuilder str.Length
+        let mutable list = System.Collections.Generic.List(str.Length)
 
         while runes.MoveNext() do
             runes.Current.Value
             |> Rune.normalize
-            |> stringBuilder.Append
-            |> ignore
+            |> Rune
+            |> list.Add
 
-        stringBuilder.ToString()
+        list.ToArray()
