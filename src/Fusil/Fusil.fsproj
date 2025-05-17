@@ -11,7 +11,7 @@
   <PropertyGroup>
     <PackageId>Fusil</PackageId>
     <Authors>Gaël Bouquain</Authors>
-    <PackageTags>Fuzzy;String;Matching;Comparison;fable-all</PackageTags>
+    <PackageTags>Fuzzy;String;Matching;Comparison</PackageTags>
     <PackageProjectUrl>https://github.com/carne8/Fusil</PackageProjectUrl>
     <RepositoryUrl>https://github.com/carne8/Fusil</RepositoryUrl>
     <FablePackageType>library</FablePackageType>
@@ -27,10 +27,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Fable.Package.SDK" Version="1.3.0">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
     <PackageReference Include="Fable.Core" Version="4.5.0" Condition="$(DefineConstants.Contains('FABLE_COMPILER'))" />
   </ItemGroup>
 
