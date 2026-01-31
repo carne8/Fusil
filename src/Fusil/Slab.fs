@@ -1,4 +1,4 @@
-namespace Fusil
+namespace Memory
 
 /// Two region of memory used in by the fuzzy finding algorithm
 type Slab =

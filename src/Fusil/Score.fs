@@ -1,6 +1,6 @@
-namespace Fusil
+namespace Constants
 
-open Fusil.Text
+open Text
 
 module internal Score =
     let [<Literal>] match' = 16s

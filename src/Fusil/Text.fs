@@ -1,4 +1,4 @@
-module internal Fusil.Text
+module internal Text
 
 open System.Text
 

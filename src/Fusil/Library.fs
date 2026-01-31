@@ -1,4 +1,4 @@
-module Fusil.Fusil
+module Fusil
 
 // Reimplementation of the fzf algorithm
 // https://github.com/junegunn/fzf/blob/master/src/algo/algo.go
@@ -6,8 +6,10 @@ module Fusil.Fusil
 open System
 open System.Text
 
-open Fusil.Text
-open Fusil.TextNormalization
+open Text
+open TextNormalization
+open Memory
+open Constants
 
 [<Struct>]
 type FuzzyResult =
@@ -68,18 +70,18 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: Rune array
     // this phase as well (non-optimal alignment).
     let M = pattern.Length
     if M = 0 then
-        Some { Start = 0; End = 0; Score = 0s; MatchingPositions = null }
+        ValueSome { Start = 0; End = 0; Score = 0s; MatchingPositions = null }
     else
 
     let N = input.Length
     if M > N then
-        None
+        ValueNone
     else
 
     // Since O(nm) algorithm can be prohibitively expensive for large input,
     // we fall back to the greedy algorithm.
     if N*M > slab.i16.Length then
-        None // TODO: fallback on a faster algorithm
+        ValueNone // TODO: fallback on a faster algorithm
     else
 
     // TODO: build phase 1
@@ -171,20 +173,20 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: Rune array
         off <- off+1
 
     if pidx <> M then // Input doesn't contain pattern
-        None
+        ValueNone
     else
 
     if M = 1 then
         if withPos then
-            Some { Start = minIdx + maxScorePos
-                   End = minIdx + maxScorePos + 1
-                   Score = maxScore
-                   MatchingPositions = Array.init N (fun idx -> idx = minIdx + maxScorePos) }
+            ValueSome { Start = minIdx + maxScorePos
+                        End = minIdx + maxScorePos + 1
+                        Score = maxScore
+                        MatchingPositions = Array.init N (fun idx -> idx = minIdx + maxScorePos) }
         else
-            Some { Start = minIdx + maxScorePos
-                   End = minIdx + maxScorePos
-                   Score = maxScore
-                   MatchingPositions = null }
+            ValueSome { Start = minIdx + maxScorePos
+                        End = minIdx + maxScorePos
+                        Score = maxScore
+                        MatchingPositions = null }
     else
 
     // Phase 3: Fill in score matrix
@@ -301,7 +303,7 @@ let fuzzyMatch caseSensitive normalize withPos (slab: Slab) (pattern: Rune array
     // Start offset we return here is only relevant when begin tiebreak is used.
     // However, finding the accurate offset requires backtracking, and we don't
     // want to pay extra cost for the option that has lost its importance.
-    Some { Start = minIdx + j
-           End = minIdx + maxScorePos + 1
-           Score = maxScore
-           MatchingPositions = matchingPositions }
+    ValueSome { Start = minIdx + j
+                End = minIdx + maxScorePos + 1
+                Score = maxScore
+                MatchingPositions = matchingPositions }

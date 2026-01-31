@@ -1,4 +1,4 @@
-module Fusil.TextNormalization
+module TextNormalization
 
 open System.Text
 
