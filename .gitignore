@@ -57,3 +57,4 @@ nunit-*.xml
 .vs/
 .vscode/
 build/
+BenchmarkDotNet.Artifacts
